@@ -8,15 +8,6 @@
       "role": "admin",
       "avatar": "/placeholder.svg?height=40&width=40",
       "createdAt": "2024-01-01T00:00:00.000Z"
-    },
-    {
-      "id": 2,
-      "email": "user@example.com",
-      "password": "user123",
-      "name": "Regular User",
-      "role": "user",
-      "avatar": "/placeholder.svg?height=40&width=40",
-      "createdAt": "2024-01-01T00:00:00.000Z"
     }
   ],
   "tasks": [
@@ -35,10 +26,10 @@
     {
       "id": 2,
       "title": "Implement Authentication",
-      "description": "Create login and registration functionality with JWT tokens",
+      "description": "Create login functionality with JWT tokens",
       "status": "in-progress",
       "priority": "high",
-      "assignedTo": 2,
+      "assignedTo": 1,
       "createdBy": 1,
       "dueDate": "2024-01-20T00:00:00.000Z",
       "createdAt": "2024-01-05T00:00:00.000Z",
@@ -50,7 +41,7 @@
       "description": "Create responsive dashboard for task management",
       "status": "pending",
       "priority": "medium",
-      "assignedTo": 2,
+      "assignedTo": 1,
       "createdBy": 1,
       "dueDate": "2024-01-25T00:00:00.000Z",
       "createdAt": "2024-01-08T00:00:00.000Z",
@@ -65,15 +56,6 @@
       "userId": 1,
       "message": "Task 'Setup Project Architecture' was created",
       "timestamp": "2024-01-01T00:00:00.000Z"
-    },
-    {
-      "id": 2,
-      "type": "task_assigned",
-      "taskId": 2,
-      "userId": 1,
-      "assignedTo": 2,
-      "message": "Task 'Implement Authentication' was assigned to Regular User",
-      "timestamp": "2024-01-05T00:00:00.000Z"
     }
   ]
 }

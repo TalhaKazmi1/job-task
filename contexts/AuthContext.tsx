@@ -10,14 +10,13 @@ interface User {
   id: number
   email: string
   name: string
-  role: "admin" | "user"
+  role: "admin"
   avatar?: string
 }
 
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<boolean>
-  register: (email: string, password: string, name: string) => Promise<boolean>
   logout: () => void
   loading: boolean
   isAdmin: boolean
@@ -38,7 +37,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (token && userData) {
       try {
-        setUser(JSON.parse(userData))
+        const parsedUser = JSON.parse(userData)
+        if (parsedUser.role === "admin") {
+          setUser(parsedUser)
+        } else {
+          Cookies.remove("token")
+          Cookies.remove("user")
+        }
       } catch (error) {
         Cookies.remove("token")
         Cookies.remove("user")
@@ -52,43 +57,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true)
       const response = await authApi.login(email, password)
 
-      if (response.success) {
+      if (response.success && response.user.role === "admin") {
         const token = `mock-jwt-token-${response.user.id}`
         Cookies.set("token", token, { expires: 7 })
         Cookies.set("user", JSON.stringify(response.user), { expires: 7 })
         setUser(response.user)
-        toast.success("Welcome back!")
+        toast.success("Welcome back, Admin!")
         return true
       } else {
-        toast.error(response.message || "Login failed")
+        toast.error("Access denied. Admin privileges required.")
         return false
       }
     } catch (error) {
       toast.error("Login failed. Please try again.")
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
-    try {
-      setLoading(true)
-      const response = await authApi.register(email, password, name)
-
-      if (response.success) {
-        const token = `mock-jwt-token-${response.user.id}`
-        Cookies.set("token", token, { expires: 7 })
-        Cookies.set("user", JSON.stringify(response.user), { expires: 7 })
-        setUser(response.user)
-        toast.success("Account created successfully!")
-        return true
-      } else {
-        toast.error(response.message || "Registration failed")
-        return false
-      }
-    } catch (error) {
-      toast.error("Registration failed. Please try again.")
       return false
     } finally {
       setLoading(false)
@@ -108,7 +89,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         login,
-        register,
         logout,
         loading,
         isAdmin,

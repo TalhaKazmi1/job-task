@@ -1,16 +1,14 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { Sidebar } from "@/components/Sidebar"
+import { DeleteTaskModal } from "@/components/DeleteTaskModal"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTasks, type CreateTaskData, type UpdateTaskData } from "@/contexts/TaskContext"
 import { formatDate, getStatusColor, getPriorityColor } from "@/lib/utils"
 import { Plus, Search, Edit, Trash2, Calendar, AlertCircle } from "lucide-react"
-import { useQuery } from "react-query"
-import { userApi } from "@/lib/api"
 
 export default function TasksPage() {
   return (
@@ -31,8 +29,11 @@ function TasksContent() {
   const [priorityFilter, setPriorityFilter] = useState("all")
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingTask, setEditingTask] = useState<any>(null)
-
-  const { data: users = [] } = useQuery("users", userApi.getUsers)
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; task: any; isDeleting: boolean }>({
+    isOpen: false,
+    task: null,
+    isDeleting: false,
+  })
 
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
@@ -54,10 +55,24 @@ function TasksContent() {
     setEditingTask(null)
   }
 
-  const handleDeleteTask = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this task?")) {
-      await deleteTask(id)
+  const handleDeleteClick = (task: any) => {
+    setDeleteModal({ isOpen: true, task, isDeleting: false })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (deleteModal.task) {
+      setDeleteModal((prev) => ({ ...prev, isDeleting: true }))
+      try {
+        await deleteTask(deleteModal.task.id)
+        setDeleteModal({ isOpen: false, task: null, isDeleting: false })
+      } catch (error) {
+        setDeleteModal((prev) => ({ ...prev, isDeleting: false }))
+      }
     }
+  }
+
+  const handleDeleteCancel = () => {
+    setDeleteModal({ isOpen: false, task: null, isDeleting: false })
   }
 
   if (loading) {
@@ -153,9 +168,6 @@ function TasksContent() {
                       Priority
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Assigned To
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Due Date
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -164,67 +176,52 @@ function TasksContent() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredTasks.map((task, index) => {
-                    const assignedUser = users.find((u) => u.id === task.assignedTo)
-                    return (
-                      <tr key={task.id} className="hover:bg-gray-50 transition-colors duration-200">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{task.title}</div>
-                            <div className="text-sm text-gray-500">{task.description}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(task.status)}`}
+                  {filteredTasks.map((task) => (
+                    <tr key={task.id} className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{task.title}</div>
+                          <div className="text-sm text-gray-500">{task.description}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(task.status)}`}
+                        >
+                          {task.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getPriorityColor(task.priority)}`}
+                        >
+                          {task.priority}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div className="flex items-center">
+                          <Calendar className="mr-1 h-4 w-4" />
+                          {formatDate(task.dueDate)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            onClick={() => setEditingTask(task)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors duration-200"
                           >
-                            {task.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getPriorityColor(task.priority)}`}
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(task)}
+                            className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 transition-colors duration-200"
                           >
-                            {task.priority}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <img
-                              className="h-8 w-8 rounded-full"
-                              src={assignedUser?.avatar || "/placeholder.svg?height=32&width=32&query=user+avatar"}
-                              alt={assignedUser?.name}
-                            />
-                            <div className="ml-3">
-                              <div className="text-sm font-medium text-gray-900">{assignedUser?.name || "Unknown"}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <Calendar className="mr-1 h-4 w-4" />
-                            {formatDate(task.dueDate)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2">
-                            <button
-                              onClick={() => setEditingTask(task)}
-                              className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors duration-200"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteTask(task.id)}
-                              className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 transition-colors duration-200"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -232,38 +229,32 @@ function TasksContent() {
         </div>
       </div>
 
-      {showCreateModal && (
-        <TaskModal users={users} onClose={() => setShowCreateModal(false)} onSubmit={handleCreateTask} />
-      )}
+      {showCreateModal && <TaskModal onClose={() => setShowCreateModal(false)} onSubmit={handleCreateTask} />}
 
       {editingTask && (
         <TaskModal
-          users={users}
           task={editingTask}
           onClose={() => setEditingTask(null)}
           onSubmit={(data) => handleUpdateTask(editingTask.id, data)}
         />
       )}
+
+      <DeleteTaskModal
+        isOpen={deleteModal.isOpen}
+        taskTitle={deleteModal.task?.title || ""}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        isDeleting={deleteModal.isDeleting}
+      />
     </div>
   )
 }
 
-function TaskModal({
-  users,
-  task,
-  onClose,
-  onSubmit,
-}: {
-  users: any[]
-  task?: any
-  onClose: () => void
-  onSubmit: (data: any) => void
-}) {
+function TaskModal({ task, onClose, onSubmit }: { task?: any; onClose: () => void; onSubmit: (data: any) => void }) {
   const [formData, setFormData] = useState({
     title: task?.title || "",
     description: task?.description || "",
     priority: task?.priority || "medium",
-    assignedTo: task?.assignedTo || users[0]?.id || 1,
     dueDate: task?.dueDate ? task.dueDate.split("T")[0] : "",
     status: task?.status || "pending",
   })
@@ -333,21 +324,6 @@ function TaskModal({
                 </select>
               </div>
             )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Assign To</label>
-            <select
-              value={formData.assignedTo}
-              onChange={(e) => setFormData({ ...formData, assignedTo: Number.parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name} ({user.role})
-                </option>
-              ))}
-            </select>
           </div>
 
           <div>

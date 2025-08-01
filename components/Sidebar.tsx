@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, CheckSquare, Users, User, LogOut, Menu, X } from "lucide-react"
+import { LayoutDashboard, CheckSquare, User, LogOut, Menu, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
@@ -13,14 +13,10 @@ const navigation = [
   { name: "Profile", href: "/profile", icon: User },
 ]
 
-const adminNavigation = [{ name: "Users", href: "/admin/users", icon: Users }]
-
 export function Sidebar() {
-  const { user, logout, isAdmin } = useAuth()
+  const { user, logout } = useAuth()
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-
-  const allNavigation = isAdmin ? [...navigation, ...adminNavigation] : navigation
 
   return (
     <>
@@ -39,11 +35,11 @@ export function Sidebar() {
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-center h-16 px-4 bg-blue-600">
-            <h1 className="text-xl font-bold text-white">TaskFlow</h1>
+            <h1 className="text-xl font-bold text-white">TaskFlow Admin</h1>
           </div>
 
           <nav className="flex-1 px-4 py-6 space-y-2">
-            {allNavigation.map((item) => {
+            {navigation.map((item) => {
               const isActive = pathname === item.href
               return (
                 <Link
@@ -68,7 +64,7 @@ export function Sidebar() {
             <div className="flex items-center mb-4">
               <img
                 className="h-10 w-10 rounded-full"
-                src={user?.avatar || "/placeholder.svg?height=40&width=40&query=user+avatar"}
+                src={user?.avatar || "/placeholder.svg?height=40&width=40&query=admin+avatar"}
                 alt={user?.name}
               />
               <div className="ml-3">

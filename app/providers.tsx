@@ -1,10 +1,10 @@
 "use client"
 
 import type React from "react"
-
 import { QueryClient, QueryClientProvider } from "react-query"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { TaskProvider } from "@/contexts/TaskContext"
+import { WebSocketProvider } from "@/contexts/WebSocketContext"
 import { useState } from "react"
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -24,7 +24,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TaskProvider>{children}</TaskProvider>
+        <WebSocketProvider>
+          <TaskProvider>{children}</TaskProvider>
+        </WebSocketProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

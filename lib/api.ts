@@ -3,7 +3,6 @@ import Cookies from "js-cookie"
 
 const API_BASE_URL = "http://localhost:3001"
 
-// Fallback data when JSON server is not available
 const fallbackUsers = [
   {
     id: 1,
@@ -11,15 +10,6 @@ const fallbackUsers = [
     password: "admin123",
     name: "Admin User",
     role: "admin",
-    avatar: "/placeholder.svg?height=40&width=40",
-    createdAt: "2024-01-01T00:00:00.000Z",
-  },
-  {
-    id: 2,
-    email: "user@example.com",
-    password: "user123",
-    name: "Regular User",
-    role: "user",
     avatar: "/placeholder.svg?height=40&width=40",
     createdAt: "2024-01-01T00:00:00.000Z",
   },
@@ -41,10 +31,10 @@ const fallbackTasks = [
   {
     id: 2,
     title: "Implement Authentication",
-    description: "Create login and registration functionality with JWT tokens",
+    description: "Create login functionality with JWT tokens",
     status: "in-progress",
     priority: "high",
-    assignedTo: 2,
+    assignedTo: 1,
     createdBy: 1,
     dueDate: "2024-01-20T00:00:00.000Z",
     createdAt: "2024-01-05T00:00:00.000Z",
@@ -56,7 +46,7 @@ const fallbackTasks = [
     description: "Create responsive dashboard for task management",
     status: "pending",
     priority: "medium",
-    assignedTo: 2,
+    assignedTo: 1,
     createdBy: 1,
     dueDate: "2024-01-25T00:00:00.000Z",
     createdAt: "2024-01-08T00:00:00.000Z",
@@ -64,7 +54,6 @@ const fallbackTasks = [
   },
 ]
 
-// Store data in localStorage for persistence
 const getStoredData = (key: string, fallback: any[]) => {
   if (typeof window === "undefined") return fallback
 
@@ -103,112 +92,39 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Check if JSON server is available
 let isJsonServerAvailable = true
-
-const checkJsonServer = async () => {
-  try {
-    await api.get("/users", { timeout: 2000 })
-    return true
-  } catch (error) {
-    return false
-  }
-}
 
 export const authApi = {
   async login(email: string, password: string) {
     try {
-      // Try JSON server first
       if (isJsonServerAvailable) {
         try {
           const response = await api.get("/users")
           const users = response.data
-          const user = users.find((u: any) => u.email === email && u.password === password)
+          const user = users.find((u: any) => u.email === email && u.password === password && u.role === "admin")
 
           if (user) {
             const { password: _, ...userWithoutPassword } = user
             return { success: true, user: userWithoutPassword }
           } else {
-            return { success: false, message: "Invalid credentials" }
+            return { success: false, message: "Invalid credentials or insufficient privileges" }
           }
         } catch (error) {
           isJsonServerAvailable = false
         }
       }
 
-      // Fallback to localStorage
       const users = getStoredData("users", fallbackUsers)
-      const user = users.find((u: any) => u.email === email && u.password === password)
+      const user = users.find((u: any) => u.email === email && u.password === password && u.role === "admin")
 
       if (user) {
         const { password: _, ...userWithoutPassword } = user
         return { success: true, user: userWithoutPassword }
       } else {
-        return { success: false, message: "Invalid credentials" }
+        return { success: false, message: "Invalid credentials or insufficient privileges" }
       }
     } catch (error) {
       throw new Error("Login failed")
-    }
-  },
-
-  async register(email: string, password: string, name: string) {
-    try {
-      let users = []
-
-      // Try JSON server first
-      if (isJsonServerAvailable) {
-        try {
-          const response = await api.get("/users")
-          users = response.data
-          const existingUser = users.find((u: any) => u.email === email)
-
-          if (existingUser) {
-            return { success: false, message: "User already exists" }
-          }
-
-          const newUser = {
-            id: Date.now(),
-            email,
-            password,
-            name,
-            role: "user",
-            avatar: `/placeholder.svg?height=40&width=40&query=${name.replace(" ", "+")}+avatar`,
-            createdAt: new Date().toISOString(),
-          }
-
-          await api.post("/users", newUser)
-          const { password: _, ...userWithoutPassword } = newUser
-          return { success: true, user: userWithoutPassword }
-        } catch (error) {
-          isJsonServerAvailable = false
-        }
-      }
-
-      // Fallback to localStorage
-      users = getStoredData("users", fallbackUsers)
-      const existingUser = users.find((u: any) => u.email === email)
-
-      if (existingUser) {
-        return { success: false, message: "User already exists" }
-      }
-
-      const newUser = {
-        id: Date.now(),
-        email,
-        password,
-        name,
-        role: "user",
-        avatar: `/placeholder.svg?height=40&width=40&query=${name.replace(" ", "+")}+avatar`,
-        createdAt: new Date().toISOString(),
-      }
-
-      users.push(newUser)
-      setStoredData("users", users)
-
-      const { password: _, ...userWithoutPassword } = newUser
-      return { success: true, user: userWithoutPassword }
-    } catch (error) {
-      throw new Error("Registration failed")
     }
   },
 }
@@ -216,7 +132,6 @@ export const authApi = {
 export const taskApi = {
   async getTasks() {
     try {
-      // Try JSON server first
       if (isJsonServerAvailable) {
         try {
           const response = await api.get("/tasks")
@@ -226,7 +141,6 @@ export const taskApi = {
         }
       }
 
-      // Fallback to localStorage
       return getStoredData("tasks", fallbackTasks)
     } catch (error) {
       return getStoredData("tasks", fallbackTasks)
@@ -241,13 +155,13 @@ export const taskApi = {
       ...data,
       id: Date.now(),
       status: "pending",
+      assignedTo: 1,
       createdBy: user?.id || 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
 
     try {
-      // Try JSON server first
       if (isJsonServerAvailable) {
         try {
           const response = await api.post("/tasks", newTask)
@@ -257,7 +171,6 @@ export const taskApi = {
         }
       }
 
-      // Fallback to localStorage
       const tasks = getStoredData("tasks", fallbackTasks)
       tasks.push(newTask)
       setStoredData("tasks", tasks)
@@ -277,7 +190,6 @@ export const taskApi = {
     }
 
     try {
-      // Try JSON server first
       if (isJsonServerAvailable) {
         try {
           const response = await api.patch(`/tasks/${id}`, updatedData)
@@ -287,7 +199,6 @@ export const taskApi = {
         }
       }
 
-      // Fallback to localStorage
       const tasks = getStoredData("tasks", fallbackTasks)
       const taskIndex = tasks.findIndex((task: any) => task.id === id)
       if (taskIndex !== -1) {
@@ -310,7 +221,6 @@ export const taskApi = {
 
   async deleteTask(id: number) {
     try {
-      // Try JSON server first
       if (isJsonServerAvailable) {
         try {
           const response = await api.delete(`/tasks/${id}`)
@@ -320,7 +230,6 @@ export const taskApi = {
         }
       }
 
-      // Fallback to localStorage
       const tasks = getStoredData("tasks", fallbackTasks)
       const filteredTasks = tasks.filter((task: any) => task.id !== id)
       setStoredData("tasks", filteredTasks)
@@ -337,7 +246,6 @@ export const taskApi = {
 export const userApi = {
   async getUsers() {
     try {
-      // Try JSON server first
       if (isJsonServerAvailable) {
         try {
           const response = await api.get("/users")
@@ -350,7 +258,6 @@ export const userApi = {
         }
       }
 
-      // Fallback to localStorage
       const users = getStoredData("users", fallbackUsers)
       return users.map((user: any) => {
         const { password, ...userWithoutPassword } = user
@@ -366,12 +273,14 @@ export const userApi = {
   },
 }
 
-// Initialize JSON server availability check
 if (typeof window !== "undefined") {
-  checkJsonServer().then((available) => {
-    isJsonServerAvailable = available
-    if (!available) {
+  api
+    .get("/users", { timeout: 2000 })
+    .then(() => {
+      isJsonServerAvailable = true
+    })
+    .catch(() => {
+      isJsonServerAvailable = false
       console.log("JSON Server not available, using localStorage fallback")
-    }
-  })
+    })
 }

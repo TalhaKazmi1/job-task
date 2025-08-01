@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -9,10 +8,9 @@ import { LoadingSpinner } from "./LoadingSpinner"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  adminOnly?: boolean
 }
 
-export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth()
   const router = useRouter()
 
@@ -23,12 +21,12 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
         return
       }
 
-      if (adminOnly && user.role !== "admin") {
-        router.push("/dashboard")
+      if (user.role !== "admin") {
+        router.push("/auth/login")
         return
       }
     }
-  }, [user, loading, router, adminOnly])
+  }, [user, loading, router])
 
   if (loading) {
     return (
@@ -38,7 +36,7 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
     )
   }
 
-  if (!user || (adminOnly && user.role !== "admin")) {
+  if (!user || user.role !== "admin") {
     return null
   }
 
